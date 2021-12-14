@@ -2,7 +2,7 @@
 
 MIDI In component for ESPHome
 
-![MIDI logo](images/midi.svg | width=100)
+<img src="images/midi.svg" alt="MIDI logo" width="200" />
 
 ## Installing
 
