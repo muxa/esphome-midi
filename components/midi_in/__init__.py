@@ -1,12 +1,15 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
-from esphome.components import uart, binary_sensor
+from esphome.components import uart, binary_sensor, light
+from esphome.components.light.types import AddressableLightEffect
+from esphome.components.light.effects import register_addressable_effect
 from esphome.const import (
     CONF_ABOVE,
     CONF_BELOW,
     CONF_CHANNEL,
     CONF_ID,
+    CONF_NAME,
     CONF_UART_ID,
     CONF_TRIGGER_ID,
 )
@@ -100,6 +103,8 @@ MidiInControlInRangeCondition = midi_in_ns.class_(
     "MidiInControlInRangeCondition", automation.Condition
 )
 
+MidiLightEffect = midi_in_ns.class_("MidiLightEffect", AddressableLightEffect)
+
 MULTI_CONF = True
 
 CONF_ON_CHANNEL_MESSAGE = "on_channel_message"
@@ -109,6 +114,16 @@ CONF_PLAYBACK = "playback"
 
 CONF_NOTE = "note"
 CONF_CONTROL = "control"
+
+CONF_FOREGROUND_LIGHT_ID = "foreground_light_id"
+CONF_BACKGROUND_LIGHT_ID = "background_light_id"
+
+# light effects
+CONF_MIDI_IN_ID = "midi_in_id"
+CONF_START_NOTE = "start_note"
+CONF_KEYS = "keys"
+CONF_NOTE_ON_FADE = "note_on_fade"
+CONF_NOTE_OFF_FADE = "note_off_fade"
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -252,3 +267,43 @@ async def midi_in_control_in_range_condition_to_code(
         cg.add(var.set_max(config[CONF_BELOW]))
 
     return var
+
+
+@register_addressable_effect(
+    "midi_in",
+    MidiLightEffect,
+    "MIDI",
+    {
+        cv.GenerateID(CONF_MIDI_IN_ID): cv.use_id(MidiInComponent),
+        cv.Required(CONF_START_NOTE): cv.hex_int,
+        cv.Required(CONF_KEYS): cv.int_range(1, 127),
+        cv.Optional(
+            CONF_NOTE_ON_FADE, default="200ms"
+        ): cv.positive_time_period_milliseconds,
+        cv.Optional(
+            CONF_NOTE_OFF_FADE, default="3s"
+        ): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_FOREGROUND_LIGHT_ID): cv.use_id(light.AddressableLightState),
+        cv.Optional(CONF_BACKGROUND_LIGHT_ID): cv.use_id(light.AddressableLightState),
+    },
+)
+async def midi_light_effect_to_code(config, effect_id):
+    midi = await cg.get_variable(config[CONF_MIDI_IN_ID])
+    effect = cg.new_Pvariable(effect_id, midi, config[CONF_NAME])
+    cg.add(effect.set_start_note(config[CONF_START_NOTE]))
+    cg.add(effect.set_keys(config[CONF_KEYS]))
+    cg.add(effect.set_note_on_fade(config[CONF_NOTE_ON_FADE]))
+    cg.add(effect.set_note_off_fade(config[CONF_NOTE_OFF_FADE]))
+    if CONF_FOREGROUND_LIGHT_ID in config:
+        cg.add(
+            effect.set_foreground_light(
+                await cg.get_variable(config[CONF_FOREGROUND_LIGHT_ID])
+            )
+        )
+    if CONF_BACKGROUND_LIGHT_ID in config:
+        cg.add(
+            effect.set_background_light(
+                await cg.get_variable(config[CONF_BACKGROUND_LIGHT_ID])
+            )
+        )
+    return effect
