@@ -136,12 +136,12 @@ CONFIG_SCHEMA = cv.All(
                     ),
                 }
             ),
-            cv.Optional(CONF_CONNECTED): binary_sensor.BINARY_SENSOR_SCHEMA.extend(
+            cv.Optional(CONF_CONNECTED): binary_sensor.binary_sensor_schema(binary_sensor.BinarySensor).extend(
                 {
                     cv.GenerateID(): cv.declare_id(binary_sensor.BinarySensor),
                 }
             ),
-            cv.Optional(CONF_PLAYBACK): binary_sensor.BINARY_SENSOR_SCHEMA.extend(
+            cv.Optional(CONF_PLAYBACK): binary_sensor.binary_sensor_schema(binary_sensor.BinarySensor).extend(
                 {
                     cv.GenerateID(): cv.declare_id(binary_sensor.BinarySensor),
                 }
@@ -165,7 +165,7 @@ async def to_code(config):
 
     cg.add_global(midi_in_ns.using)
 
-    cg.add_library("MIDI Library", "5.0.2")
+    cg.add_library("fortyseveneffects/MIDI Library", "5.0.2")
 
     uart_component = await cg.get_variable(config[CONF_UART_ID])
     var = cg.new_Pvariable(config[CONF_ID], uart_component)
